@@ -46,7 +46,7 @@ static void wait_ec(void *context, unsigned int ms)
 {
 	struct fake_ec *ec = context;
 	if (ms == 3000) {
-		assert(ec->regs[FAN_PWM_READ(3)] == 160);
+		assert(ec->regs[FAN_PWM_READ(3)] == 120);
 		ec->holds++;
 		if (ec->change_hold == 1)
 			ec->regs[FAN_PWM_READ(3)] = 159;
@@ -177,7 +177,7 @@ static void one_identification_is_bounded_and_restores_baseline(void)
 	assert(fan_control_identify_once(&ctl) == 0);
 	assert(ec.holds == 1);
 	assert(ec.pwm_count == 2);
-	assert(ec.pwm_history[0] == 160);
+	assert(ec.pwm_history[0] == 120);
 	assert(ec.pwm_history[1] == 165);
 	assert(ec.regs[FAN_PWM_READ(3)] == 165);
 	assert(ec.regs[FAN_PWM_READ(0)] == 255);
@@ -235,7 +235,7 @@ static void one_identification_is_bounded_and_restores_baseline(void)
 	assert(ec.holds == 1);
 	assert(ctl.restore_pending);
 	assert(!ctl.touched);
-	assert(ec.regs[FAN_PWM_READ(3)] == 160);
+	assert(ec.regs[FAN_PWM_READ(3)] == 120);
 	assert(ec.regs[FAN_MODE_REG] == 0xf4);
 	assert(fan_control_recover(&ctl) == 0);
 	assert(ec.regs[FAN_PWM_READ(3)] == 165);

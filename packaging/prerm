@@ -1,0 +1,17 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+set -eu
+if [ "$1" = remove ]; then
+    if systemctl cat coolercontrold.service >/dev/null 2>&1; then
+        systemctl disable --now coolercontrold.service
+    fi
+    python3 /usr/local/libexec/asrock-nct6686/driver-service.py restore
+    systemctl disable --now asrock-nct6686.service
+    python3 /usr/local/libexec/asrock-nct6686/driver-service.py stop
+    python3 /usr/local/libexec/asrock-nct6686/driver-service.py reset
+    dkms remove -m asrock-nct6686-fanctl -v @VERSION@ --all
+    if dkms status -m asrock-nct6686-fanctl | grep -q '[^[:space:]]'; then
+        echo "Other project DKMS versions remain; removal is incomplete" >&2
+        exit 1
+    fi
+fi

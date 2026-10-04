@@ -1,15 +1,15 @@
 [Unit]
-Description=ASRock NCT6686 guarded hwmon driver (readonly at boot)
+Description=ASRock NCT6686 guarded hwmon driver (readonly until explicitly enabled)
 After=systemd-modules-load.service
 Before=coolercontrold.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/libexec/asrock-nct6686/load-readonly.sh
-ExecStop=/usr/local/libexec/asrock-nct6686/stop-driver.sh
-TimeoutStartSec=15
-TimeoutStopSec=15
+ExecStart=/usr/local/libexec/asrock-nct6686/driver-service.py start
+ExecStop=/usr/local/libexec/asrock-nct6686/driver-service.py stop
+TimeoutStartSec=30
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target

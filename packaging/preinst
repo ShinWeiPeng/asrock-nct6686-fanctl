@@ -1,0 +1,19 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+set -eu
+if [ -d /sys/module/asrock_nct6686 ]; then
+    echo "Stop CoolerControl, restore BIOS and unload the existing driver before installing" >&2
+    exit 1
+fi
+if command -v dkms >/dev/null; then
+    existing=$(dkms status -m asrock-nct6686-fanctl)
+    if ! printf '%s\n' "$existing" | while IFS= read -r line; do
+        case "$line" in
+            ""|asrock-nct6686-fanctl/@VERSION@,*|asrock-nct6686-fanctl/@VERSION@:*) ;;
+            *) exit 1 ;;
+        esac
+    done; then
+        echo "Remove other project DKMS versions before installing @VERSION@" >&2
+        exit 1
+    fi
+fi

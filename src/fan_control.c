@@ -156,7 +156,7 @@ int fan_control_identify_once(struct fan_control *ctl)
 	if (busy & 0x80)
 		return -EBUSY;
 	ctl->restore_pending = 1;
-	result = fan_control_set_pwm(ctl, 3, 160);
+	result = fan_control_set_pwm(ctl, 3, 120);
 	if (result == -EBUSY && !ctl->touched) {
 		ctl->restore_pending = 0;
 		return result;
@@ -167,7 +167,7 @@ int fan_control_identify_once(struct fan_control *ctl)
 		mode = ctl->io.read(ctl->io.context, FAN_MODE_REG);
 		if (raw < 0 || mode < 0)
 			result = raw < 0 ? raw : mode;
-		else if (raw != 160 || (unsigned int)mode != expected_mode)
+		else if (raw != 120 || (unsigned int)mode != expected_mode)
 			result = -EIO;
 	}
 	/* Recover the baseline even when the failed pulse already released BIOS. */

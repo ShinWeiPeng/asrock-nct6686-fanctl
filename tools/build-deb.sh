@@ -2,66 +2,50 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+version=$(sed -n 's/^PACKAGE_VERSION="\([0-9.]*\)"$/\1/p' "$root/dkms.conf")
+[ -n "$version" ] || { echo "Invalid package version" >&2; exit 1; }
 out=${1:-"$root/artifacts/validation/package-$(date -u +%Y%m%dT%H%M%SZ)"}
 mkdir -p "$out"
 out=$(CDPATH= cd -- "$out" && pwd)
-stage=$(mktemp -d "$out/stage.XXXXXX")
-source="$stage/usr/src/asrock-nct6686-fanctl-0.1.1"
-install -d "$source/src" "$stage/DEBIAN"
-install -m 644 "$root"/src/*.c "$root"/src/*.h "$source/src/"
-install -m 644 "$root/Makefile" "$root/dkms.conf" "$root/LICENSE" "$source/"
-install -d "$stage/usr/share/doc/asrock-nct6686-fanctl-dkms"
-install -m 644 "$root/LICENSE" "$stage/usr/share/doc/asrock-nct6686-fanctl-dkms/copyright"
-cat > "$stage/DEBIAN/control" <<'EOF'
+stage=$(mktemp -d "$out/stage.XXXXXXXX")
+chmod 755 "$stage"
+source="$stage/usr/src/asrock-nct6686-fanctl-$version"
+install -d "$source" "$stage/DEBIAN" "$stage/usr/local/libexec/asrock-nct6686"
+cd "$root"
+for relative in src/*.c src/*.h Makefile dkms.conf LICENSE README.md tools/*.sh tools/*.py \
+    packaging/* docs/*.md tests/modules/fan-control/*.c tests/flows/driver-lifecycle/*.py; do
+    [ -f "$relative" ] || continue
+    install -d "$source/$(dirname -- "$relative")"
+    install -m 644 "$relative" "$source/$relative"
+done
+for file in driver-service.py backup.sh load-readonly.sh restore-bios.sh stop-driver.sh; do
+    install -m 755 "tools/$file" "$stage/usr/local/libexec/asrock-nct6686/$file"
+done
+install -d "$stage/etc/systemd/system/coolercontrold.service.d" \
+    "$stage/usr/share/doc/asrock-nct6686-fanctl-dkms"
+install -m 644 packaging/asrock-nct6686.service "$stage/etc/systemd/system/"
+install -m 644 packaging/coolercontrold.conf \
+    "$stage/etc/systemd/system/coolercontrold.service.d/asrock-nct6686.conf"
+install -m 644 LICENSE "$stage/usr/share/doc/asrock-nct6686-fanctl-dkms/copyright"
+install -m 644 docs/recovery.md "$stage/usr/share/doc/asrock-nct6686-fanctl-dkms/recovery.md"
+cat > "$stage/DEBIAN/control" <<EOF
 Package: asrock-nct6686-fanctl-dkms
-Version: 0.1.1
+Version: $version
 Architecture: all
-Depends: dkms, gcc, make
+Depends: dkms, gcc, make, python3, systemd
 Section: kernel
 Priority: optional
 Maintainer: Local Administrator <root@localhost>
-Description: Guarded ASRock A620AI WiFi NCT6686D hwmon driver source
- DKMS source package. Default module operation is readonly.
- Matching running-kernel headers must be installed separately.
- Does not load a module or take over fans during package installation.
+Description: Guarded ASRock A620AI WiFi NCT6686D fan control
+ Complete DKMS source, service, opt-in control and BIOS recovery tools.
+ Defaults to readonly; matching running-kernel headers are required.
 EOF
-cat > "$stage/DEBIAN/preinst" <<'EOF'
-#!/bin/sh
-set -eu
-command -v dkms >/dev/null || exit 0
-
-existing=$(dkms status -m asrock-nct6686-fanctl)
-if printf '%s\n' "$existing" | grep -v '^asrock-nct6686-fanctl/0\.1\.1[, :]' | grep -q '[^[:space:]]'; then
-    echo "Other DKMS versions remain; stop and remove the old version before installing 0.1.1" >&2
-    printf '%s\n' "$existing" >&2
-    exit 1
-fi
-EOF
-cat > "$stage/DEBIAN/postinst" <<'EOF'
-#!/bin/sh
-set -eu
-if [ "$1" = configure ]; then
-    if ! dkms status -m asrock-nct6686-fanctl -v 0.1.1 | grep -q .; then
-        dkms add -m asrock-nct6686-fanctl -v 0.1.1
-    fi
-    dkms build -m asrock-nct6686-fanctl -v 0.1.1 -k "$(uname -r)"
-    dkms install -m asrock-nct6686-fanctl -v 0.1.1 -k "$(uname -r)"
-fi
-EOF
-cat > "$stage/DEBIAN/prerm" <<'EOF'
-#!/bin/sh
-set -eu
-if [ "$1" = remove ]; then
-    if [ -d /sys/module/asrock_nct6686 ]; then
-        echo "Stop CoolerControl, return to BIOS and unload asrock_nct6686 before removing" >&2
-        exit 1
-    fi
-    dkms remove -m asrock-nct6686-fanctl -v 0.1.1 --all
-    if dkms status -m asrock-nct6686-fanctl | grep -q '[^[:space:]]'; then
-        echo "Other project DKMS versions remain; removal incomplete" >&2
-        exit 1
-    fi
-fi
-EOF
+for name in preinst postinst prerm; do
+    sed "s/@VERSION@/$version/g" "packaging/$name" > "$stage/DEBIAN/$name"
+done
+# preinst must back up old files before dpkg replaces them; reuse the same source.
+cat tools/backup.sh >> "$stage/DEBIAN/preinst"
 chmod 755 "$stage/DEBIAN/preinst" "$stage/DEBIAN/postinst" "$stage/DEBIAN/prerm"
-dpkg-deb --root-owner-group --build "$stage" "$out/asrock-nct6686-fanctl-dkms_0.1.1_all.deb"
+printf '%s\n' /etc/systemd/system/asrock-nct6686.service \
+    /etc/systemd/system/coolercontrold.service.d/asrock-nct6686.conf > "$stage/DEBIAN/conffiles"
+dpkg-deb --root-owner-group --build "$stage" "$out/asrock-nct6686-fanctl-dkms_${version}_all.deb"

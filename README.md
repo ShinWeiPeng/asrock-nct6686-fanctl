@@ -1,94 +1,78 @@
 # ASRock A620AI WiFi NCT6686D 風扇控制
 
-**開發中（0.1.1）**：控制核心模擬測試及本版完整 Linux 模組編譯已在 home-dev 通過；候選通道辨識仍待實機驗證。單一 DKMS .deb 的服務、備份與復原工具整合仍待完成，現有套件只交付驅動原始碼。此快照不是已完成實機驗收的版本。
+**開發中（0.2.0）**：C Linux hwmon 驅動、DKMS、服務與 CoolerControl 整合。僅接受 ASRock A620AI WiFi / NCT6686D / customer ID 0x1633。完整控制與套件生命週期仍須對此版本完成實機驗收。
 
-SPEC-0004 的 C Linux hwmon 驅動、DKMS 與 Proxmox CoolerControl 整合。僅接受 ASRock A620AI WiFi / NCT6686D / customer ID 0x1633。
+本板實測已確認 pwm4 是 CHA_FAN1：原始值165降至120時機殼風扇變快、CPU風扇沒有變速，恢復165及 BIOS 後兩顆恢復原狀。這是兩個設定點的方向證據，沒有 RPM 校正、全範圍或新核心相容性證據。
 
-**目前預設唯讀。CHA_FAN1 的通道、電氣極性與 BIOS 接管仍須實機確認，不能假設 pwm4 是 CHA_FAN1。**
+## 開發與快速測試
 
-## 建置與安裝
-
-在目標 Proxmox 上：
-```sh
-apt-get install build-essential dkms proxmox-headers-$(uname -r)
-make test
-make modules
-sh tools/build-deb.sh
-sh tools/install.sh
-systemctl start asrock-nct6686.service
-sh tools/install-coolercontrol.sh
-```
-
-install.sh 保存設定到 /var/lib/asrock-nct6686-backup.*，建立 DKMS 原始碼與服務但不載入模組。service 首次只載入唯讀驅動。DKMS 嘗試重建未來核心；未經載入與實機測試的核心不宣稱相容。主機重啟尚待安排。
-
-build-deb.sh 建立原始碼 DKMS 套件；安裝套件需要當前核心 headers，只建置/安裝模組，不設定 service 或載入。要使用服務及備份工具，另執行 install.sh。套件與腳本使用相同 DKMS 名稱，請選定一種管理方式，移除時依 [復原說明](docs/recovery.md)。
-
-## 遠端介面
-
-CoolerControl 僅綁本機；在工作站開啟 SSH 通道：
-```sh
-ssh -N -L 11987:127.0.0.1:11987 root@PROXMOX_HOST
-```
-再開啟 http://127.0.0.1:11987 。私鑰及認證依工作站既有 SSH 設定，專案不保存秘密。
-
-唯讀時 PWM 控制應為不可寫。無 tach 的 CHA_FAN1 沒有可用 RPM；數字 0 不能證明風扇停轉，也不能換算成真實轉速。CPU_FAN 的 tach 仍保留原讀數。
-
-## 啟用條件
-
-模組參數 enable_control、cha_fan_channel（1 到 8）、channel_verified、polarity_verified、invert_pwm 均只能在載入時設定，權限 0400。只有身分、有效通道、channel_verified 與 polarity_verified 全部成立才提供該通道的寫入權限。invert_pwm 僅在觀察證明需要時設為 1。
-
-這些旗標是管理者對實測的聲明，模組不能自行證明接線。尚未確認前請使用 service 的唯讀設定。啟用程序需先停止 CoolerControl、回 BIOS、卸載再載入；具體通道值與反向設定必須取自實測紀錄。不能把猜測值寫進開機設定。
-
-標準 pwmN 為 0 到 255，pwmN_enable=1 為手動、2 為 BIOS。寫入只改選定通道；失敗回報 errno，有限等待後嘗試回 BIOS。控制命令握手仍須本板實測。正常停止/卸載會嘗試釋放，硬體或核心崩潰不能由模組保證復原。
-
-## 原始碼與驗證
-
-- src/fan_control.c：控制交易與錯誤復原，可用模擬 EC 測試。
-- src/nct6686_hwmon.c：Linux hwmon、硬體辨識、鎖與感測器介面。
-- tests/modules/fan-control/：公開介面的通道隔離、唯讀、反向及失敗測試。
-- validation/：驗收計畫；artifacts/validation/：固定執行紀錄。
-- [實機驗證計畫](validation/plan.md)、[復原說明](docs/recovery.md)。
-
-硬體介面源自 [Linux v7.0 nct6683](https://github.com/torvalds/linux/blob/v7.0/drivers/hwmon/nct6683.c)，保留其授權與作者資訊。控制握手參考 [nct6686d](https://github.com/s25g5d4/nct6686d)，該專案測試的是另一款主機板，不構成本板相容性證據。[hwmon 標準](https://docs.kernel.org/hwmon/sysfs-interface.html)；[CoolerControl 安裝](https://docs.coolercontrol.org/installation/debian)及[監聽設定](https://docs.coolercontrol.org/daemon/address)。
-
-GPL-2.0-or-later；完整授權見 [LICENSE](LICENSE)，各來源保留 SPDX 與作者資訊。
-
-## home-dev 測試及發佈
-
-home-dev 或其他 Linux 開發環境可跑 `make test`，不需要 NCT6686D。模擬測試不能確認實際風扇通道。
-建置給 Proxmox 的模組時，需準備目標核心完整 headers（包含配置與 Module.symvers），使用
-`KDIR` 指向目標 headers 目錄；不必讓 home-dev 開機使用該核心。不能用 home-dev 自身核心的模組替代。
-目前 `tools/build-deb.sh` 產生 DKMS 原始碼安裝包：只傳該 .deb 即可，但安裝主機會編譯。
-預先編譯模組則只適用於匹配的核心／架構／配置，更新核心必須重新建置與驗證。
-
-Git 保存原始碼、測試、打包工具及說明；`artifacts/`、`specs/`、`spec-governance/`、`.build-tools/` 與模組建置產物不提交。
-本專案不保存 SSH 私鑰或登入認證。發佈 GPL 衍生模組時一併提供對應的完整原始碼及授權資訊。
-
-### home-dev 日常編譯
-
-首次 clone 後，在 Linux checkout 編輯並執行：
-
+可在 home-dev 等 Linux 環境編輯，不需要每次傳到 Proxmox 才知道編譯錯誤：
 ```sh
 make test CC=gcc-14
+python3 tests/flows/driver-lifecycle/test_service.py
+python3 tests/flows/driver-lifecycle/test_package.py
 make modules CC=gcc-14 KERNEL=7.0.14-11-pve \
   KDIR="$PWD/.build-tools/pve-7.0.14-11/usr/src/linux-headers-7.0.14-11-pve" W=1
 sh tools/build-deb.sh
 ```
+KDIR 必須先準備完整的目標核心 headers、配置及 Module.symvers。編譯測試不載入驅動。home-dev 的 Ubuntu GCC14.3 與目標 Debian GCC14.2 不同，Kbuild 可能提示版本差異；缺少 pahole/vmlinux 時沒有 BTF。這些檢查不能替代實際風扇、EC 握手及 CoolerControl 驗證。
 
-上述 headers 路徑須先準備完整的目標 headers；GCC 14 是 home-dev 的開發編譯器。
-這些指令不安裝或載入模組。修改後以一般 Git commit/push 保存，其他 checkout 用 `git pull --ff-only` 同步。
+## 單一 DKMS 安裝包
 
-在提交 `e74f3e7` 的 home-dev 實測：8 組模擬測試通過（約0.28秒）、目標模組建置通過（約1.56秒），
-DKMS .deb 建立及來源/授權/安裝腳本語法檢查通過。耗時僅代表該次執行。
-目標核心使用 Debian GCC14.2，home-dev 使用 Ubuntu GCC14.3；Kbuild 提示編譯器版本不同。
-缺少 pahole/vmlinux，未產生 BTF。這些結果不代表二進位完全相同、DKMS 安裝或實際硬體控制已驗證。
+只需傳送 build-deb.sh 產生的 .deb 到 Proxmox。套件包含對應 GPL 原始碼、服務、控制工具及復原說明；目標主機會用當前核心 headers 編譯：
+```sh
+apt-get install build-essential dkms python3 proxmox-headers-$(uname -r)
+apt-get install ./asrock-nct6686-fanctl-dkms_0.2.0_all.deb
+systemctl start asrock-nct6686.service
+```
+亦可在原始碼目錄執行 `sh tools/install.sh`，它建置並安裝同一套件。首次安裝與重裝都把控制設定設為停用；安裝不載入模組、不調整風扇。啟動服務預設唯讀，明確使用 identify_once=0。
 
-## 單次候選 pwm4 辨識
+安裝前保存原有模組、CoolerControl、服務、控制設定及本專案 DKMS 原始碼到 root 私有備份目錄。已載入本專案模組或不同版本 DKMS 登錄會阻擋安裝；舊版迁移按 [復原說明](docs/recovery.md) 處理。同版重裝會重新建置／安裝當前核心模組，不沿用舊建置。
 
-此為 SPEC-0004 REQ-012 的明確授權例外，不能代替通道及極性驗證。正常安裝／服務不啟用此路徑。
-只有在有人現場觀察且已授權一次辨識時，載入 `identify_once=1` 並保持其餘控制參數為預設。
-驅動要求精確板型／晶片／customer ID、active pwm4、初值165、BIOS模式及EC非busy；
-只設原始值160，維持3000ms，恢復165後交回BIOS。hwmon duty／模式介面全程唯讀。
-檢查 `identify_result` 及核心日誌；載入成功不等於辨識成功。失敗不得自動重複辨識。
-若 `handoff_pending=1`，先執行 `tools/restore-bios.sh`；恢復165／BIOS未驗證前不可卸載。
-此測試無 tach 回授，只有實際觀察可確認變速的是哪一顆風扇以及變化方向。
+DKMS 可在核心更新後嘗試重建。若控制設定所記錄的實測核心與開機核心不同，服務降為唯讀；重新實測前不自動開啟寫入。重啟、新核心及長時間運行需要另行驗證。
+
+## 已確認通道的控制
+
+完成實體辨識後，由管理者明確啟用；VERIFIED_RUN_ID 是保存該次實測的32位小寫十六進位識別碼：
+```sh
+/usr/local/libexec/asrock-nct6686/driver-service.py enable \
+  --channel 4 --invert --verification-run VERIFIED_RUN_ID
+/usr/local/libexec/asrock-nct6686/driver-service.py status
+```
+工具先保存可復原備份，再停止 CoolerControl、交回 BIOS、切換驅動並重啟原先運行的服務。設定存於 root 擁有、0600 權限的 /var/lib/asrock-nct6686/control.json。旗標與識別碼是管理者對實测的聲明，程式無法自行證明接線。
+
+啟用後只有 pwm4 及 pwm4_enable 可寫，其他通道唯讀。標準 pwm4 是0～255，使用反向映射 `raw = 255 - pwm4`；例如 pwm4=90 對應 raw165、pwm4=135 對應 raw120。畫面百分比表示控制量，不能換算成真實 RPM；已觀察的範圍以外尚未校正。pwm4_enable=1 是手動、2 是 BIOS 接管。載入模組本身不改 duty。
+
+停用寫入並回到唯讀：
+```sh
+/usr/local/libexec/asrock-nct6686/driver-service.py disable
+```
+復原失敗會回報錯誤、保留驅動及待復原狀態，不強制卸載。軟體不能保證硬體故障或核心崩潰時復原。
+
+## CoolerControl 介面
+
+依 [CoolerControl 安裝說明](https://docs.coolercontrol.org/installation/debian) 安裝；本專案 drop-in 讓它依賴驅動服務，停止時交回 BIOS，僅綁 loopback。
+工作站透過 SSH 通道使用：
+```sh
+ssh -N -L 11987:127.0.0.1:11987 root@PROXMOX_HOST
+```
+開啟 http://127.0.0.1:11987 。無 tach 的 CHA_FAN1 沒有可用 RPM；0不能證明停轉。CPU_FAN 仍保留原 tach 讀數。唯讀狀態不能寫入 duty。此版本提供手動設定與 BIOS 接管，未建立溫度曲線。
+
+## 原始碼與驗證
+
+- src/fan_control.c：控制交易、通道隔離及錯誤復原。
+- src/nct6686_hwmon.c：Linux hwmon、身分辨識、同步及感測器。
+- tools/driver-service.py：啟用、停用、狀態、備份及服務復原。
+- tests/modules/fan-control/：C 公開介面與模擬 EC 測試。
+- tests/flows/driver-lifecycle/：服務與單一套件的公開介面測試。
+- [實機驗證計畫](validation/plan.md)、[停止與復原](docs/recovery.md)。
+
+Git 保存原始碼、測試、打包工具及說明；artifacts/、specs/、spec-governance/、.build-tools/、私鑰、認證及建置產物不提交。其他 checkout 用一般 Git commit/push、pull --ff-only 同步。
+
+硬體介面源自 [Linux v7.0 nct6683](https://github.com/torvalds/linux/blob/v7.0/drivers/hwmon/nct6683.c)，保留授權與作者資訊。握手參考 [nct6686d](https://github.com/s25g5d4/nct6686d)，另一款主機板的測試不能證明本板相容。[hwmon 標準](https://docs.kernel.org/hwmon/sysfs-interface.html)、[CoolerControl 監聽設定](https://docs.coolercontrol.org/daemon/address)。
+
+GPL-2.0-or-later，完整授權見 [LICENSE](LICENSE)。
+
+## 保留的單次辨識入口
+
+僅供已有明確授權、有人現場觀察的一次候選 pwm4 辨識；正常安裝、服务及控制流程均不啟用它。identify_once=1 只在精確身分、active pwm4、原始值165、BIOS模式及EC非busy成立時執行165→120→165→BIOS，設定維持3000ms，實際握手與復原會增加整體耗時。hwmon duty／模式入口全程唯讀。失敗不得自動重複；handoff_pending=1 時先復原，未驗證165及 BIOS 前不可卸載。既有實體辨識已完成，不應自動再次執行。

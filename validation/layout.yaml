@@ -95,6 +95,13 @@
         ".gitattributes"
       ],
       "role": "metadata"
+    },
+    {
+      "include": [
+        "tests/flows/driver-lifecycle/**"
+      ],
+      "role": "test",
+      "owner": "driver-lifecycle"
     }
   ],
   "references": [],
@@ -111,6 +118,46 @@
       "root": "artifacts/tests",
       "target": {
         "module": "fan-control"
+      }
+    },
+    {
+      "writer": "validate-on-device",
+      "root": "artifacts/validation",
+      "scenario": "identify-tool-enablement",
+      "target": {
+        "flow": "driver-lifecycle"
+      }
+    },
+    {
+      "writer": "validate-on-device",
+      "root": "artifacts/validation",
+      "scenario": "fan-identify-once",
+      "target": {
+        "flow": "driver-lifecycle"
+      }
+    },
+    {
+      "writer": "validate-on-device",
+      "root": "artifacts/validation",
+      "scenario": "fan-identify-120",
+      "target": {
+        "flow": "driver-lifecycle"
+      }
+    },
+    {
+      "writer": "validate-on-device",
+      "root": "artifacts/validation",
+      "scenario": "control-vectors-native",
+      "target": {
+        "flow": "driver-lifecycle"
+      }
+    },
+    {
+      "writer": "validate-on-device",
+      "root": "artifacts/validation",
+      "scenario": "driver-system-acceptance",
+      "target": {
+        "flow": "driver-lifecycle"
       }
     }
   ],

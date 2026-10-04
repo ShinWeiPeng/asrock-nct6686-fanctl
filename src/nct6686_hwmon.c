@@ -48,7 +48,7 @@ static bool polarity_verified;
 static bool invert_pwm;
 module_param(enable_control, bool, 0400);
 module_param(identify_once, bool, 0400);
-MODULE_PARM_DESC(identify_once, "One explicitly authorized PWM4 165->160 3s pulse; default false");
+MODULE_PARM_DESC(identify_once, "One explicitly authorized PWM4 165->120 3s pulse; default false");
 module_param(cha_fan_channel, uint, 0400);
 module_param(channel_verified, bool, 0400);
 module_param(polarity_verified, bool, 0400);
@@ -1496,4 +1496,4 @@ MODULE_LICENSE("GPL");
 module_init(sensors_nct6683_init);
 module_exit(sensors_nct6683_exit);
 
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("0.2.0");

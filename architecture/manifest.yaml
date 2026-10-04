@@ -97,7 +97,11 @@
       "id": "pve-7.0.14-11",
       "platform": "linux",
       "status": "accepted",
-      "description": "SPEC-0004 target ASRock A620AI WiFi on 7.0.14-11-pve; target selection accepted, hardware behavior still pending"
+      "description": "SPEC-0004 target ASRock A620AI WiFi on 7.0.14-11-pve; target selection accepted, hardware behavior still pending",
+      "target": {
+        "platform": "linux",
+        "validation_platform": "linux"
+      }
     }
   ]
 }

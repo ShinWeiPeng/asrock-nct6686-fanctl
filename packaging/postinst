@@ -1,0 +1,14 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+set -eu
+if [ "$1" = configure ]; then
+    if ! dkms status -m asrock-nct6686-fanctl -v @VERSION@ | grep -q .; then
+        dkms add -m asrock-nct6686-fanctl -v @VERSION@
+    fi
+    dkms build --force -m asrock-nct6686-fanctl -v @VERSION@ -k "$(uname -r)"
+    dkms install --force -m asrock-nct6686-fanctl -v @VERSION@ -k "$(uname -r)"
+    python3 /usr/local/libexec/asrock-nct6686/driver-service.py reset
+    systemctl daemon-reload
+    systemctl enable asrock-nct6686.service
+fi
+# Deliberately do not start a service or load a module during package installation.
