@@ -13,7 +13,7 @@ source="$stage/usr/src/asrock-nct6686-fanctl-$version"
 install -d "$source" "$stage/DEBIAN" "$stage/usr/local/libexec/asrock-nct6686"
 cd "$root"
 for relative in src/*.c src/*.h Makefile dkms.conf LICENSE README.md tools/*.sh tools/*.py \
-    packaging/* docs/*.md tests/modules/fan-control/*.c tests/flows/driver-lifecycle/*.py; do
+    packaging/* docs/*.md; do
     [ -f "$relative" ] || continue
     install -d "$source/$(dirname -- "$relative")"
     install -m 644 "$relative" "$source/$relative"

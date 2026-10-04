@@ -4,18 +4,15 @@
 
 本板實測已確認 pwm4 是 CHA_FAN1：原始值165降至120時機殼風扇變快、CPU風扇沒有變速，恢復165及 BIOS 後兩顆恢復原狀。這是兩個設定點的方向證據，沒有 RPM 校正、全範圍或新核心相容性證據。
 
-## 開發與快速測試
+## 開發與編譯
 
 可在 home-dev 等 Linux 環境編輯，不需要每次傳到 Proxmox 才知道編譯錯誤：
 ```sh
-make test CC=gcc-14
-python3 tests/flows/driver-lifecycle/test_service.py
-python3 tests/flows/driver-lifecycle/test_package.py
 make modules CC=gcc-14 KERNEL=7.0.14-11-pve \
   KDIR="$PWD/.build-tools/pve-7.0.14-11/usr/src/linux-headers-7.0.14-11-pve" W=1
 sh tools/build-deb.sh
 ```
-KDIR 必須先準備完整的目標核心 headers、配置及 Module.symvers。編譯測試不載入驅動。home-dev 的 Ubuntu GCC14.3 與目標 Debian GCC14.2 不同，Kbuild 可能提示版本差異；缺少 pahole/vmlinux 時沒有 BTF。這些檢查不能替代實際風扇、EC 握手及 CoolerControl 驗證。
+KDIR 必須先準備完整的目標核心 headers、配置及 Module.symvers。編譯檢查不載入驅動。home-dev 的 Ubuntu GCC14.3 與目標 Debian GCC14.2 不同，Kbuild 可能提示版本差異；缺少 pahole/vmlinux 時沒有 BTF。這些檢查不能替代實際風扇、EC 握手及 CoolerControl 驗證。
 
 ## 單一 DKMS 安裝包
 
@@ -52,22 +49,21 @@ DKMS 可在核心更新後嘗試重建。若控制設定所記錄的實測核心
 ## CoolerControl 介面
 
 依 [CoolerControl 安裝說明](https://docs.coolercontrol.org/installation/debian) 安裝；本專案 drop-in 讓它依賴驅動服務，停止時交回 BIOS，僅綁 loopback。
-工作站透過 SSH 通道使用：
+區域網路連線可依 [LAN 設定說明](docs/lan-access.md) 啟用。預設僅綁本機，也可從工作站透過 SSH 通道使用：
 ```sh
 ssh -N -L 11987:127.0.0.1:11987 root@PROXMOX_HOST
 ```
 開啟 http://127.0.0.1:11987 。無 tach 的 CHA_FAN1 沒有可用 RPM；0不能證明停轉。CPU_FAN 仍保留原 tach 讀數。唯讀狀態不能寫入 duty。此版本提供手動設定與 BIOS 接管，未建立溫度曲線。
 
-## 原始碼與驗證
+## 原始碼與規格
 
 - src/fan_control.c：控制交易、通道隔離及錯誤復原。
 - src/nct6686_hwmon.c：Linux hwmon、身分辨識、同步及感測器。
 - tools/driver-service.py：啟用、停用、狀態、備份及服務復原。
-- tests/modules/fan-control/：C 公開介面與模擬 EC 測試。
-- tests/flows/driver-lifecycle/：服務與單一套件的公開介面測試。
-- [實機驗證計畫](validation/plan.md)、[停止與復原](docs/recovery.md)。
+- [停止與復原](docs/recovery.md)。
+- specs/：既有實作規格與本次公開追蹤範圍；規格中的本機驗證證據不隨倉庫公開。
 
-Git 保存原始碼、測試、打包工具及說明；artifacts/、specs/、spec-governance/、.build-tools/、私鑰、認證及建置產物不提交。其他 checkout 用一般 Git commit/push、pull --ff-only 同步。
+Git 保存原始碼、打包工具、說明及 spec；tests/、validation/、artifacts/、evidence/、spec-governance/、.build-tools/、私鑰、認證及建置產物不提交。本機測試與驗證檔案保留，新的 clone 不包含這些檔案。其他 checkout 用一般 Git commit/push、pull --ff-only 同步。
 
 硬體介面源自 [Linux v7.0 nct6683](https://github.com/torvalds/linux/blob/v7.0/drivers/hwmon/nct6683.c)，保留授權與作者資訊。握手參考 [nct6686d](https://github.com/s25g5d4/nct6686d)，另一款主機板的測試不能證明本板相容。[hwmon 標準](https://docs.kernel.org/hwmon/sysfs-interface.html)、[CoolerControl 監聽設定](https://docs.coolercontrol.org/daemon/address)。
 

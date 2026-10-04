@@ -1,7 +1,9 @@
-# Local governance, test evidence and private build tools
+# Local tests, validation, evidence and private build tools
 /artifacts/
+/tests/
+/validation/
+/evidence/
 /spec-governance/
-/specs/
 /.build-tools/
 # Kernel and host build outputs
 *.o
