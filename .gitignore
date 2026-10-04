@@ -1,0 +1,27 @@
+# Local governance, test evidence and private build tools
+/artifacts/
+/spec-governance/
+/specs/
+/.build-tools/
+# Kernel and host build outputs
+*.o
+*.obj
+*.ko
+*.mod
+*.mod.c
+*.cmd
+*.symvers
+modules.order
+Module.symvers
+.tmp_versions/
+*.deb
+*.exe
+*.ilk
+*.pdb
+*.exp
+*.lib
+# Editor and credential files
+.env
+.env.*
+*.pem
+*.key

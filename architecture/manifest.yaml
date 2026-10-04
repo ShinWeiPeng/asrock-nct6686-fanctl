@@ -1,0 +1,103 @@
+{
+  "standard_version": "2.2.0",
+  "schema_version": "2.2.0",
+  "project": {
+    "name": "asrock-nct6686-fanctl",
+    "documentation_language": "zh-TW",
+    "diagram_language": "zh-TW"
+  },
+  "source_sets": [
+    {
+      "id": "driver-source",
+      "classification": "production",
+      "include": [
+        "src/**"
+      ],
+      "exclude": [],
+      "purpose": "Guarded hwmon driver and control core",
+      "provenance": "SPEC-0004 authorized implementation; hwmon adapter based on Linux v7.0 nct6683"
+    },
+    {
+      "id": "project-support",
+      "classification": "development",
+      "include": [
+        "tests/**",
+        "tools/**",
+        "packaging/**",
+        "validation/**",
+        "docs/**",
+        "README.md",
+        "Makefile",
+        "dkms.conf",
+        ".clang-format",
+        "architecture/**",
+        ".gitignore",
+        "LICENSE",
+        ".gitattributes"
+      ],
+      "exclude": [],
+      "purpose": "Build, tests, deployment, documentation and validation ownership",
+      "provenance": "SPEC-0004 implementation"
+    },
+    {
+      "id": "private-format-tool",
+      "classification": "build-output",
+      "include": [
+        ".build-tools",
+        ".build-tools/**"
+      ],
+      "exclude": [],
+      "purpose": "Project-private formatter runtime, outside product source",
+      "provenance": "clang-format 23.1.2 pip target, installed during this implementation"
+    }
+  ],
+  "modules": [
+    {
+      "id": "fan-control",
+      "level": "L1",
+      "role": "domain",
+      "implementation_status": "implemented",
+      "paths": [
+        "src/fan_control.c",
+        "src/fan_control.h"
+      ],
+      "parent": "hwmon-driver",
+      "depends_on": [],
+      "implements_ports": [],
+      "description": {
+        "purpose": "Isolate one verified PWM channel, preserve other bits, bound waits and restore BIOS on failure"
+      }
+    },
+    {
+      "id": "hwmon-driver",
+      "level": "L0",
+      "role": "composition",
+      "implementation_status": "implemented",
+      "paths": [
+        "src/nct6686_hwmon.c"
+      ],
+      "parent": null,
+      "depends_on": [
+        "fan-control"
+      ],
+      "implements_ports": [],
+      "description": {
+        "purpose": "Bind exact board/chip/customer identity, serialize EC access and expose standard hwmon telemetry"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "driver-lifecycle",
+      "purpose": "Readonly installation, guarded control after physical verification and BIOS/stock restoration"
+    }
+  ],
+  "execution_profiles": [
+    {
+      "id": "pve-7.0.14-11",
+      "platform": "linux",
+      "status": "accepted",
+      "description": "SPEC-0004 target ASRock A620AI WiFi on 7.0.14-11-pve; target selection accepted, hardware behavior still pending"
+    }
+  ]
+}

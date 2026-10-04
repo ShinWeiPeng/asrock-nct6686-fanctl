@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "include": [
+        "src/fan_control.c",
+        "src/fan_control.h"
+      ],
+      "role": "production",
+      "owner": "fan-control"
+    },
+    {
+      "include": [
+        "src/nct6686_hwmon.c"
+      ],
+      "role": "production",
+      "owner": "hwmon-driver"
+    },
+    {
+      "include": [
+        "tests/modules/fan-control/**"
+      ],
+      "role": "test",
+      "owner": "fan-control"
+    },
+    {
+      "include": [
+        "validation/**"
+      ],
+      "role": "validation-definition"
+    },
+    {
+      "include": [
+        "artifacts/tests/**",
+        "artifacts/validation/**"
+      ],
+      "role": "run-output"
+    },
+    {
+      "include": [
+        "artifacts/legacy/**"
+      ],
+      "role": "legacy-output",
+      "provenance": "Unmodified pre-layout work artifacts; original paths and hashes retained in migration inventory; not final acceptance"
+    },
+    {
+      "include": [
+        "specs/**"
+      ],
+      "role": "specification"
+    },
+    {
+      "include": [
+        "spec-governance/**"
+      ],
+      "role": "governance-state"
+    },
+    {
+      "include": [
+        ".build-tools",
+        ".build-tools/**"
+      ],
+      "role": "third-party",
+      "provenance": "Project-private clang-format 23.1.2 PyPI distribution, not product sources"
+    },
+    {
+      "include": [
+        "tools/**",
+        "Makefile",
+        "dkms.conf"
+      ],
+      "role": "tooling",
+      "owner": "hwmon-driver"
+    },
+    {
+      "include": [
+        "packaging/**"
+      ],
+      "role": "production",
+      "owner": "hwmon-driver"
+    },
+    {
+      "include": [
+        "docs/**",
+        "README.md",
+        "LICENSE"
+      ],
+      "role": "documentation"
+    },
+    {
+      "include": [
+        "architecture/**",
+        ".clang-format",
+        ".gitignore",
+        ".gitattributes"
+      ],
+      "role": "metadata"
+    }
+  ],
+  "references": [],
+  "output_bindings": [
+    {
+      "writer": "project-validation",
+      "root": "artifacts/validation",
+      "target": {
+        "flow": "driver-lifecycle"
+      }
+    },
+    {
+      "writer": "module-contract",
+      "root": "artifacts/tests",
+      "target": {
+        "module": "fan-control"
+      }
+    }
+  ],
+  "external_resources": []
+}
