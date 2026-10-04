@@ -1,0 +1,13 @@
+[Unit]
+Description=CoolerControl LAN web access
+
+[Socket]
+ListenStream=192.168.2.10:11987
+FreeBind=yes
+NoDelay=true
+IPAddressDeny=any
+IPAddressAllow=localhost
+IPAddressAllow=192.168.2.0/24
+
+[Install]
+WantedBy=sockets.target

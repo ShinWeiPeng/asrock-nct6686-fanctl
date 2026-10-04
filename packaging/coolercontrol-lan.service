@@ -1,0 +1,14 @@
+[Unit]
+Description=CoolerControl LAN web proxy
+Requires=coolercontrold.service
+After=coolercontrold.service
+PartOf=coolercontrol-lan.socket
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:11987
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+IPAddressDeny=any
+IPAddressAllow=localhost
