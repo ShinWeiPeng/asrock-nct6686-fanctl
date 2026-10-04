@@ -1,6 +1,6 @@
 # ASRock A620AI WiFi NCT6686D 風扇控制
 
-**開發中（0.2.0）**：C Linux hwmon 驅動、DKMS、服務與 CoolerControl 整合。僅接受 ASRock A620AI WiFi / NCT6686D / customer ID 0x1633。完整控制與套件生命週期仍須對此版本完成實機驗收。
+**0.2.0：已完成目前核心的有界實機驗收。** C Linux hwmon 驅動、DKMS、服務與 CoolerControl 整合僅接受 ASRock A620AI WiFi / NCT6686D / customer ID 0x1633。在 7.0.14-11-pve 已驗證標準手動控制、CoolerControl 手動／未管理切換、BIOS 接管、停止與移除後恢復原驅動，以及單一安裝包重裝。實測範圍限原始值 120～165；CPU 通道未改寫，VM 持續運作。主機重啟、新核心與長時間運行尚未驗證。
 
 本板實測已確認 pwm4 是 CHA_FAN1：原始值165降至120時機殼風扇變快、CPU風扇沒有變速，恢復165及 BIOS 後兩顆恢復原狀。這是兩個設定點的方向證據，沒有 RPM 校正、全範圍或新核心相容性證據。
 
