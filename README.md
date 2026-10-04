@@ -1,6 +1,6 @@
 # ASRock A620AI WiFi NCT6686D 風扇控制
 
-**開發中（0.1.1）**：控制核心已通過主機模擬測試；本版完整 Linux 模組編譯與候選通道辨識尚待驗證。單一 DKMS .deb 的服務、備份與復原工具整合仍待完成，現有套件只交付驅動原始碼。此快照不是已完成實機驗收的版本。
+**開發中（0.1.1）**：控制核心模擬測試及本版完整 Linux 模組編譯已在 home-dev 通過；候選通道辨識仍待實機驗證。單一 DKMS .deb 的服務、備份與復原工具整合仍待完成，現有套件只交付驅動原始碼。此快照不是已完成實機驗收的版本。
 
 SPEC-0004 的 C Linux hwmon 驅動、DKMS 與 Proxmox CoolerControl 整合。僅接受 ASRock A620AI WiFi / NCT6686D / customer ID 0x1633。
 
@@ -57,12 +57,31 @@ GPL-2.0-or-later；完整授權見 [LICENSE](LICENSE)，各來源保留 SPDX 與
 
 home-dev 或其他 Linux 開發環境可跑 `make test`，不需要 NCT6686D。模擬測試不能確認實際風扇通道。
 建置給 Proxmox 的模組時，需準備目標核心完整 headers（包含配置與 Module.symvers），使用
-`make KERNEL=7.0.14-11-pve`；不必讓 home-dev 開機使用該核心。不能用 home-dev 自身核心的模組替代。
+`KDIR` 指向目標 headers 目錄；不必讓 home-dev 開機使用該核心。不能用 home-dev 自身核心的模組替代。
 目前 `tools/build-deb.sh` 產生 DKMS 原始碼安裝包：只傳該 .deb 即可，但安裝主機會編譯。
 預先編譯模組則只適用於匹配的核心／架構／配置，更新核心必須重新建置與驗證。
 
 Git 保存原始碼、測試、打包工具及說明；`artifacts/`、`specs/`、`spec-governance/`、`.build-tools/` 與模組建置產物不提交。
 本專案不保存 SSH 私鑰或登入認證。發佈 GPL 衍生模組時一併提供對應的完整原始碼及授權資訊。
+
+### home-dev 日常編譯
+
+首次 clone 後，在 Linux checkout 編輯並執行：
+
+```sh
+make test CC=gcc-14
+make modules CC=gcc-14 KERNEL=7.0.14-11-pve \
+  KDIR="$PWD/.build-tools/pve-7.0.14-11/usr/src/linux-headers-7.0.14-11-pve" W=1
+sh tools/build-deb.sh
+```
+
+上述 headers 路徑須先準備完整的目標 headers；GCC 14 是 home-dev 的開發編譯器。
+這些指令不安裝或載入模組。修改後以一般 Git commit/push 保存，其他 checkout 用 `git pull --ff-only` 同步。
+
+在提交 `e74f3e7` 的 home-dev 實測：8 組模擬測試通過（約0.28秒）、目標模組建置通過（約1.56秒），
+DKMS .deb 建立及來源/授權/安裝腳本語法檢查通過。耗時僅代表該次執行。
+目標核心使用 Debian GCC14.2，home-dev 使用 Ubuntu GCC14.3；Kbuild 提示編譯器版本不同。
+缺少 pahole/vmlinux，未產生 BTF。這些結果不代表二進位完全相同、DKMS 安裝或實際硬體控制已驗證。
 
 ## 單次候選 pwm4 辨識
 
